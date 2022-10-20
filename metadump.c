@@ -37,16 +37,20 @@ int Mcast_ttl = 5;
 int main(int argc,char *argv[]){
   App_path = argv[0];
   int c;
+  bool once = false;
 
-  while((c = getopt(argc,argv,"hv")) != -1){
+  while((c = getopt(argc,argv,"1hv")) != -1){
     switch(c){
+    case '1':
+        once = true;
+      break;
     case 'v':
       Verbose++;
       break;
     default:
       fprintf(stderr, "Invalid option -%c\n", c);
     case 'h':
-      fprintf(stderr, "Usage: %s [-h] [-v]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-1] [-h] [-v]\n", argv[0]);
       exit(1);
     break;
     }
@@ -68,7 +72,7 @@ int main(int argc,char *argv[]){
   fprintf(stdout,"Interface: %s\n",iface);
   Status_sock = listen_mcast(&sock,iface);
 
-  for(;;){
+  do {
     unsigned char buffer[8192];
 
     memset(buffer,0,sizeof(buffer));
@@ -89,7 +93,7 @@ int main(int argc,char *argv[]){
 	    cr ? "CMD " : "STAT");
     dump_metadata(buffer+1,length-1);
     fflush(stdout);
-  }
+  } while(!once);
 }
 
 
