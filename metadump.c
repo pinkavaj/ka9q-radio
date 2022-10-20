@@ -38,11 +38,17 @@ int main(int argc,char *argv[]){
   App_path = argv[0];
   int c;
 
-  while((c = getopt(argc,argv,"vd")) != -1){
+  while((c = getopt(argc,argv,"hv")) != -1){
     switch(c){
     case 'v':
       Verbose++;
       break;
+    default:
+      fprintf(stderr, "Invalid option -%c\n", c);
+    case 'h':
+      fprintf(stderr, "Usage: %s [-h] [-v]\n", argv[0]);
+      exit(1);
+    break;
     }
   }
 
