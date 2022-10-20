@@ -63,13 +63,13 @@ int main(int argc,char *argv[]){
     }
   }
   setlocale(LC_ALL,Locale); // Set either the hardwired default or the value of $LANG if it exists
-  fprintf(stdout,"Listening to %s\n",argv[optind]);
+  fprintf(stderr,"Listening to %s\n",argv[optind]);
   struct sockaddr_storage sock;
   char iface[1024];
   iface[0] = '\0';
 
   resolve_mcast(argv[optind],&sock,DEFAULT_STAT_PORT,iface,sizeof(iface));
-  fprintf(stdout,"Interface: %s\n",iface);
+  fprintf(stderr,"Interface: %s\n",iface);
   Status_sock = listen_mcast(&sock,iface);
 
   do {
