@@ -60,11 +60,12 @@ int main(int argc,char *argv[]){
   char *locale;
   locale = getenv("LANG");
   setlocale(LC_ALL,locale);
+  const char *output = "";
 
   // Defaults
   Quiet = 0;
   int c;
-  while((c = getopt(argc,argv,"D:S:l:r:qd:v")) != EOF){
+  while((c = getopt(argc,argv,"D:S:l:o:r:qd:v")) != EOF){
     switch(c){
     case 'D':
       Filedir = optarg;
@@ -75,6 +76,9 @@ int main(int argc,char *argv[]){
     case 'l':
       locale = optarg;
       setlocale(LC_ALL,locale);
+      break;
+    case 'o':
+      output = optarg;
       break;
     case 'q':
       Quiet++; // Suppress display
@@ -89,7 +93,7 @@ int main(int argc,char *argv[]){
       Verbose++;
       break;
     default:
-      fprintf(stderr,"Usage: %s multicast_addr -S status_addr [-r samp_rate] [-d duration_sec] [-D dir_name] [-l locale] [-d duration] [-q] [-v]\n",argv[0]);
+      fprintf(stderr,"Usage: %s multicast_addr -S status_addr [-r samp_rate] [-d duration_sec] [-D dir_name] [-l locale] [-d duration] [-o output_file] [-q] [-v]\n",argv[0]);
       exit(1);
       break;
     }
@@ -131,32 +135,42 @@ int main(int argc,char *argv[]){
   }
 
   // Create file with name iqrecord-frequency-ssrc or pcmrecord-ssrc
-  int suffix;
-  char filename[PATH_MAX];
-  for(suffix=0;suffix<100;suffix++){
-    struct stat statbuf;
-    
-    if(Filedir)
-      snprintf(filename,sizeof(filename),"%s/iqrecord-%.1lfHz-%u-%d",Filedir,Frontend.sdr.frequency,Frontend.input.rtp.ssrc,suffix);
-    else
-      snprintf(filename,sizeof(filename),"iqrecord-%.1lfHz-%u-%d",Frontend.sdr.frequency,Frontend.input.rtp.ssrc,suffix);
-    if(stat(filename,&statbuf) == -1 && errno == ENOENT)
-      break;
+  FILE *fp;
+  if (!strcmp(output, "-")) {
+    fp = stdout;
+  } else {
+    int suffix;
+    char filename[PATH_MAX];
+
+    if (!strcmp(output, "")) {
+      for(suffix=0;suffix<10000;suffix++){
+        struct stat statbuf;
+
+        if(Filedir)
+          snprintf(filename,sizeof(filename),"%s/iqrecord-%.1lfHz-%u-%04d",Filedir,Frontend.sdr.frequency,Frontend.input.rtp.ssrc,suffix);
+        else
+          snprintf(filename,sizeof(filename),"iqrecord-%.1lfHz-%u-%04d",Frontend.sdr.frequency,Frontend.input.rtp.ssrc,suffix);
+        if(stat(filename,&statbuf) == -1 && errno == ENOENT)
+          break;
+      }
+      if(suffix == 10000){
+        fprintf(stderr,"Can't generate filename %s to write\n",filename);
+        // After this many tries, something is probably seriously wrong
+        exit(1);
+      }
+    } else {
+      strncpy(filename, output, PATH_MAX);
+    }
+    fp = fopen(filename,"w");
+    if(fp == NULL){
+      fprintf(stderr,"can't write file %s\n",filename);
+      perror("open");
+      exit(1);
+    }
+    if(!Quiet)
+      fprintf(stderr,"creating file %s\n",filename);
   }
-  if(suffix == 100){
-    fprintf(stderr,"Can't generate filename %s to write\n",filename);
-    // After this many tries, something is probably seriously wrong
-    exit(1);
-  }
-  FILE *fp = fopen(filename,"w+");
-  if(fp == NULL){
-    fprintf(stderr,"can't write file %s\n",filename);
-    perror("open");
-    exit(1);
-  }
-  if(!Quiet)
-    fprintf(stderr,"creating file %s\n",filename);
-  
+
   void *iobuffer = malloc(BUFFERSIZE);
   setbuffer(fp,iobuffer,BUFFERSIZE);
   
