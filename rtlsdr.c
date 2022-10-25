@@ -640,8 +640,7 @@ void do_rtlsdr_agc(struct sdrstate *sdr){
 #if ORIGINAL_TRUE_FREQ
 double true_freq(uint64_t freq){
   // Code extracted from tuner_r82xx.c
-  int rc, i;
-  unsigned sleep_time = 10000;
+  int i;
   uint64_t vco_freq;
   uint32_t vco_fra;	/* VCO contribution by SDM (kHz) */
   uint32_t vco_min = 1770000;
@@ -751,7 +750,10 @@ double true_freq(uint64_t freq_hz){
 
 double set_correct_freq(struct sdrstate *sdr,double freq){
   int64_t intfreq = round(freq / (1 + sdr->calibration));
-  rtlsdr_set_center_freq(sdr->device,intfreq);
+  if (rtlsdr_set_center_freq(sdr->device,intfreq)) {
+      fprintf(stderr, "rtlsdr_set_center_freq error\n");
+      exit(1);
+  }
 #ifdef USE_NEW_LIBRTLSDR
   double tf = rtlsdr_get_freq(sdr->device);
 #else
